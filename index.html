@@ -613,6 +613,59 @@
       return 'moderate';
     }
     
+    // SMART RECOMMENDATIONS - Find cheapest hour within a time window
+    function findCheapestInWindow(prices, startHour, endHour) {
+      let validHours = prices.filter(p => {
+        if (startHour < endHour) {
+          return p.hour >= startHour && p.hour < endHour;
+        } else {
+          // Handles overnight windows like 00:00-07:00
+          return p.hour >= startHour || p.hour < endHour;
+        }
+      });
+      
+      if (validHours.length === 0) return null;
+      return validHours.reduce((min, p) => p.price < min.price ? p : min);
+    }
+    
+    // Find best consecutive hours for EV charging (e.g., 3-4 hours)
+    function findCheapestWindow(prices, startHour, endHour, duration) {
+      let validHours = [];
+      
+      // Build array of valid hours
+      for (let h = 0; h < 24; h++) {
+        if (startHour < endHour) {
+          if (h >= startHour && h < endHour) validHours.push(prices[h]);
+        } else {
+          if (h >= startHour || h < endHour) validHours.push(prices[h]);
+        }
+      }
+      
+      if (validHours.length < duration) return null;
+      
+      // Find cheapest consecutive block
+      let bestStart = 0;
+      let bestAvg = Infinity;
+      
+      for (let i = 0; i <= validHours.length - duration; i++) {
+        let sum = 0;
+        for (let j = 0; j < duration; j++) {
+          sum += validHours[i + j].price;
+        }
+        let avg = sum / duration;
+        if (avg < bestAvg) {
+          bestAvg = avg;
+          bestStart = i;
+        }
+      }
+      
+      return {
+        startHour: validHours[bestStart].hour,
+        endHour: validHours[bestStart + duration - 1].hour + 1,
+        avgPrice: bestAvg
+      };
+    }
+    
     function renderPage() {
       const smartDate = getSmartDate();
       const avgPrice = priceData.reduce((sum, p) => sum + p.price, 0) / priceData.length;
@@ -647,12 +700,42 @@
         <div class="hour-item worst"><span class="hour-time">${formatHour(p.hour)}</span><span class="hour-price">${formatPrice(p.price)}/kWh</span></div>
       `).join('');
       
-      const bestHour = cheapest[0].hour;
-      const worstHour = expensive[0].hour;
+      // SMART RECOMMENDATIONS based on realistic time windows
+      const washer = findCheapestInWindow(priceData, 8, 22);      // 08:00-22:00
+      const dishwasher = findCheapestInWindow(priceData, 14, 24); // 14:00-24:00
+      const evCharging = findCheapestWindow(priceData, 0, 7, 4);  // 00:00-07:00, 4 hours
+      const peakHours = priceData.filter(p => p.hour >= 18 && p.hour <= 21);
+      const peakExpensive = peakHours.reduce((max, p) => p.price > max.price ? p : max);
+      
       document.getElementById('tips-container').innerHTML = `
-        <div class="tip-item"><div class="tip-icon">🧺</div><div class="tip-content"><h4>Lavadora y lavavajillas</h4><p>Mejor hora: <span class="tip-highlight">${formatHour(bestHour)}</span></p></div></div>
-        <div class="tip-item"><div class="tip-icon">🚗</div><div class="tip-content"><h4>Carga del coche eléctrico</h4><p>Programa la carga para las <span class="tip-highlight">${formatHour(bestHour)}</span></p></div></div>
-        <div class="tip-item"><div class="tip-icon">⚠️</div><div class="tip-content"><h4>Evita las ${formatHour(worstHour)}</h4><p>Es la hora más cara. No uses electrodomésticos grandes.</p></div></div>
+        <div class="tip-item">
+          <div class="tip-icon">🧺</div>
+          <div class="tip-content">
+            <h4>Lavadora</h4>
+            <p>Mejor hora (08:00-22:00): <span class="tip-highlight">${formatHour(washer.hour)}</span> a ${formatPrice(washer.price)}/kWh</p>
+          </div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">🍽️</div>
+          <div class="tip-content">
+            <h4>Lavavajillas</h4>
+            <p>Ponlo después de cenar: <span class="tip-highlight">${formatHour(dishwasher.hour)}</span> a ${formatPrice(dishwasher.price)}/kWh</p>
+          </div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">🚗</div>
+          <div class="tip-content">
+            <h4>Carga del coche eléctrico</h4>
+            <p>Programa de <span class="tip-highlight">${formatHour(evCharging.startHour)} a ${formatHour(evCharging.endHour)}</span> (4h más baratas de la noche)</p>
+          </div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">⚠️</div>
+          <div class="tip-content">
+            <h4>Hora punta: evita las ${formatHour(peakExpensive.hour)}</h4>
+            <p>Es la hora más cara de la tarde/noche (${formatPrice(peakExpensive.price)}/kWh). Intenta no usar electrodomésticos grandes.</p>
+          </div>
+        </div>
       `;
       
       document.getElementById('price-table-body').innerHTML = priceData.map(p => {
