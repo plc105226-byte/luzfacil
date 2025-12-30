@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Consulta el precio de la luz por horas en España. Descubre las horas más baratas para ahorrar en tu factura eléctrica.">
+  <meta name="keywords" content="precio luz, PVPC, electricidad España, horas baratas, ahorro energía">
+  <title>LuzFácil - Precio de la Luz Hoy y Mañana | España</title>
+  
+  <meta property="og:title" content="LuzFácil - Precio de la Luz en España">
+  <meta property="og:description" content="Consulta las horas más baratas de electricidad y ahorra en tu factura">
+  <meta property="og:type" content="website">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    
+    .header h1 { font-size: 2.2em; font-weight: 700; margin-bottom: 8px; }
+    .header .tagline { font-size: 1.1em; opacity: 0.9; }
+    
+    .date-display {
+      background: rgba(255,255,255,0.2);
+      display: inline-block;
+      padding: 10px 24px;
+      border-radius: 50px;
+      margin-top: 20px;
+      font-weight: 600;
+      font-size: 1.1em;
+    }
+    
+    .date-label {
+      background: #4caf50;
+      color: white;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75em;
+      margin-right: 8px;
+      text-transform: uppercase;
+    }
+    
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    
+    .card h2 {
+      font-size: 1.3em;
+      margin-bottom: 20px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    
+    @media (max-width: 500px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+    
+    .stat-box {
+      padding: 20px 16px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    
+    .stat-box.green { background: #e8f5e9; }
+    .stat-box.red { background: #ffebee; }
+    .stat-box.blue { background: #e3f2fd; }
+    
+    .stat-value { font-size: 1.6em; font-weight: 700; }
+    .stat-box.green .stat-value { color: #2e7d32; }
+    .stat-box.red .stat-value { color: #c62828; }
+    .stat-box.blue .stat-value { color: #1565c0; }
+    .stat-label { font-size: 0.85em; color: #666; margin-top: 4px; }
+    
+    .hours-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    @media (max-width: 600px) {
+      .hours-grid { grid-template-columns: 1fr; }
+    }
+    
+    .hours-section h3 { font-size: 1em; margin-bottom: 12px; color: #555; }
+    
+    .hour-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-size: 0.95em;
+    }
+    
+    .hour-item.best { background: #e8f5e9; border-left: 4px solid #4caf50; }
+    .hour-item.worst { background: #ffebee; border-left: 4px solid #f44336; }
+    .hour-time { font-weight: 600; }
+    .hour-price { color: #666; }
+    
+    .chart-container { overflow-x: auto; padding: 10px 0; }
+    
+    .price-bars {
+      display: flex;
+      align-items: flex-end;
+      height: 180px;
+      gap: 4px;
+      min-width: 500px;
+      padding-bottom: 25px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .bar-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .bar {
+      width: 100%;
+      max-width: 24px;
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+    }
+    
+    .bar:hover { opacity: 0.8; }
+    .bar.cheap { background: linear-gradient(to top, #43a047, #66bb6a); }
+    .bar.moderate { background: linear-gradient(to top, #fb8c00, #ffa726); }
+    .bar.expensive { background: linear-gradient(to top, #e53935, #ef5350); }
+    .bar-hour { font-size: 10px; color: #888; margin-top: 6px; }
+    
+    /* AD BANNER STYLES */
+    .ad-banner {
+      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+      color: white;
+      text-decoration: none;
+      display: block;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .ad-banner:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+    }
+    
+    .ad-banner .ad-label {
+      font-size: 0.7em;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    
+    .ad-banner h3 { font-size: 1.3em; margin-bottom: 6px; }
+    .ad-banner p { font-size: 0.95em; opacity: 0.95; }
+    
+    .inline-ad {
+      background: #f0f4ff;
+      border: 2px dashed #667eea;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    
+    .inline-ad a {
+      color: #667eea;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    
+    .inline-ad a:hover { text-decoration: underline; }
+    
+    /* NOTIFICATION SIGNUP */
+    .notification-section {
+      background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 30px 24px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .notification-section h2 {
+      color: white;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    
+    .notification-section > p {
+      opacity: 0.95;
+      margin-bottom: 24px;
+    }
+    
+    .notification-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    
+    .notif-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: white;
+      text-decoration: none;
+      padding: 14px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+    
+    .notif-btn:hover { transform: translateY(-2px); }
+    .notif-btn.telegram { background: #0088cc; }
+    .notif-btn.whatsapp { background: #25D366; }
+    
+    .email-signup { max-width: 400px; margin: 0 auto; }
+    .email-signup p { font-size: 0.9em; opacity: 0.9; margin-bottom: 12px; }
+    
+    .email-form { display: flex; gap: 8px; }
+    
+    .email-form input {
+      flex: 1;
+      padding: 14px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+    }
+    
+    .email-form button {
+      background: #333;
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    
+    .email-form button:hover { background: #555; }
+    
+    @media (max-width: 500px) {
+      .email-form { flex-direction: column; }
+    }
+    
+    .success-message {
+      background: rgba(255,255,255,0.2);
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-top: 12px;
+      display: none;
+    }
+    
+    .success-message.show { display: block; }
+    
+    /* AFFILIATE SECTION */
+    .affiliate-section {
+      background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 30px 24px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .affiliate-section h2 { color: white; justify-content: center; margin-bottom: 12px; }
+    .affiliate-section > p { opacity: 0.9; margin-bottom: 24px; font-size: 1.05em; }
+    
+    .affiliate-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    .affiliate-btn {
+      display: block;
+      background: white;
+      color: #1a237e;
+      text-decoration: none;
+      padding: 16px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1em;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .affiliate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    
+    .affiliate-btn span {
+      font-size: 0.85em;
+      font-weight: 400;
+      color: #666;
+      display: block;
+      margin-top: 4px;
+    }
+    
+    /* TIPS */
+    .tip-item {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .tip-icon { font-size: 1.5em; }
+    .tip-content h4 { font-size: 1em; margin-bottom: 4px; color: #333; }
+    .tip-content p { font-size: 0.9em; color: #666; }
+    
+    .tip-highlight {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    
+    /* TABLE */
+    .price-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+    
+    .price-table th {
+      background: #667eea;
+      color: white;
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 600;
+    }
+    
+    .price-table td {
+      padding: 10px 8px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .price-table tr:hover { background: #f5f5f5; }
+    
+    /* FOOTER */
+    .footer {
+      text-align: center;
+      padding: 30px 20px;
+      color: #888;
+      font-size: 0.85em;
+    }
+    
+    .footer a { color: #667eea; }
+    
+    /* COOKIE BANNER */
+    .cookie-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #333;
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      z-index: 1000;
+    }
+    
+    .cookie-banner.hidden { display: none; }
+    .cookie-banner p { font-size: 0.9em; margin: 0; }
+    
+    .cookie-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    
+    @media (max-width: 600px) {
+      .cookie-banner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  
+  <header class="header">
+    <h1>⚡ LuzFácil</h1>
+    <p class="tagline">El precio de la luz en España, fácil y claro</p>
+    <div class="date-display">
+      <span class="date-label" id="date-label">HOY</span>
+      <span id="date-text">Cargando...</span>
+    </div>
+  </header>
+  
+  <div class="container">
+    
+    <!-- STATS -->
+    <div class="card">
+      <h2>📊 Resumen del Día</h2>
+      <div class="stats-grid">
+        <div class="stat-box green">
+          <div class="stat-value" id="min-price">--</div>
+          <div class="stat-label">Precio mínimo</div>
+        </div>
+        <div class="stat-box red">
+          <div class="stat-value" id="max-price">--</div>
+          <div class="stat-label">Precio máximo</div>
+        </div>
+        <div class="stat-box blue">
+          <div class="stat-value" id="avg-price">--</div>
+          <div class="stat-label">Precio medio</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- CHART -->
+    <div class="card">
+      <h2>📈 Precios por Hora</h2>
+      <div class="chart-container">
+        <div class="price-bars" id="price-chart"></div>
+      </div>
+    </div>
+    
+    <!-- BEST & WORST -->
+    <div class="card">
+      <h2>⏰ Mejores y Peores Horas</h2>
+      <div class="hours-grid">
+        <div class="hours-section">
+          <h3>💚 Horas más baratas</h3>
+          <div id="best-hours"></div>
+        </div>
+        <div class="hours-section">
+          <h3>🔴 Horas más caras</h3>
+          <div id="worst-hours"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- NOTIFICATION SIGNUP -->
+    <div class="notification-section">
+      <h2>🔔 Recibe los precios cada día</h2>
+      <p>Te enviamos las horas más baratas todas las tardes</p>
+      
+      <div class="notification-buttons">
+        <a href="https://t.me/YOUR_TELEGRAM_CHANNEL" target="_blank" rel="noopener" class="notif-btn telegram">
+          📱 Únete en Telegram
+        </a>
+        <a href="https://whatsapp.com/channel/YOUR_WHATSAPP_CHANNEL" target="_blank" rel="noopener" class="notif-btn whatsapp">
+          💬 Canal de WhatsApp
+        </a>
+      </div>
+      
+      <div class="email-signup">
+        <p>O recibe un email diario:</p>
+        <form class="email-form" id="email-form" onsubmit="handleEmailSubmit(event)">
+          <input type="email" placeholder="tu@email.com" required id="email-input">
+          <button type="submit">Suscribir</button>
+        </form>
+        <div class="success-message" id="success-message">
+          ✓ ¡Gracias! Te hemos añadido a la lista.
+        </div>
+      </div>
+    </div>
+    
+    <!-- TIPS -->
+    <div class="card">
+      <h2>💡 Consejos para Hoy</h2>
+      <div id="tips-container"></div>
+    </div>
+    
+    <!-- AFFILIATE SECTION -->
+    <div class="affiliate-section">
+      <h2>💰 ¿Estás pagando de más?</h2>
+      <p>Los precios PVPC varían mucho. Compara tarifas y encuentra una mejor.</p>
+      <div class="affiliate-buttons">
+        <a href="https://selectra.es/energia" target="_blank" rel="noopener" class="affiliate-btn">
+          Comparar en Selectra
+          <span>Compara luz y gas gratis</span>
+        </a>
+        <a href="https://www.rastreator.com/luz-y-gas.html" target="_blank" rel="noopener" class="affiliate-btn">
+          Comparar en Rastreator
+          <span>Encuentra la tarifa más barata</span>
+        </a>
+      </div>
+    </div>
+    
+    <!-- FULL TABLE -->
+    <div class="card">
+      <h2>📋 Tabla Completa de Precios</h2>
+      <table class="price-table">
+        <thead>
+          <tr><th>Hora</th><th>€/kWh</th><th>€/MWh</th><th>Nivel</th></tr>
+        </thead>
+        <tbody id="price-table-body"></tbody>
+      </table>
+    </div>
+    
+    <!-- BOTTOM AD -->
+    <a href="https://www.rastreator.com/luz-y-gas.html" target="_blank" rel="noopener" class="ad-banner" style="background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">
+      <div class="ad-label">Publicidad</div>
+      <h3>Compara y ahorra en luz y gas</h3>
+      <p>Miles de españoles ya han encontrado una tarifa mejor →</p>
+    </a>
+    
+  </div>
+  
+  <footer class="footer">
+    <p>Datos de <a href="https://www.esios.ree.es" target="_blank">Red Eléctrica de España (ESIOS)</a></p>
+    <p>Precios para tarifa PVPC en la Península · Actualizado cada día a las 20:15</p>
+    <p style="margin-top: 12px;">© 2025 LuzFácil</p>
+  </footer>
+  
+  <div class="cookie-banner" id="cookie-banner">
+    <p>Usamos cookies para mejorar tu experiencia. Al continuar, aceptas su uso.</p>
+    <button class="cookie-btn" onclick="acceptCookies()">Aceptar</button>
+  </div>
+  
+  <script>
+    // PRICE DATA - Updated by update_prices.R
+    const priceData = [
+      { hour: 0, price: 147.6 },
+      { hour: 1, price: 143.3 },
+      { hour: 2, price: 134.7 },
+      { hour: 3, price: 131.1 },
+      { hour: 4, price: 128.0 },
+      { hour: 5, price: 126.9 },
+      { hour: 6, price: 128.1 },
+      { hour: 7, price: 128.1 },
+      { hour: 8, price: 166.1 },
+      { hour: 9, price: 158.0 },
+      { hour: 10, price: 206.7 },
+      { hour: 11, price: 199.2 },
+      { hour: 12, price: 195.9 },
+      { hour: 13, price: 190.0 },
+      { hour: 14, price: 124.9 },
+      { hour: 15, price: 128.8 },
+      { hour: 16, price: 142.4 },
+      { hour: 17, price: 159.4 },
+      { hour: 18, price: 237.1 },
+      { hour: 19, price: 238.3 },
+      { hour: 20, price: 237.5 },
+      { hour: 21, price: 238.7 },
+      { hour: 22, price: 169.2 },
+      { hour: 23, price: 170.0 }
+    ];
+    
+    function getSpainTime() {
+      return new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Madrid"}));
+    }
+    
+    function getSmartDate() {
+      const spainTime = getSpainTime();
+      const decimal = spainTime.getHours() + spainTime.getMinutes() / 60;
+      let targetDate = new Date(spainTime);
+      let label = "HOY";
+      if (decimal >= 20.25) {
+        targetDate.setDate(targetDate.getDate() + 1);
+        label = "MAÑANA";
+      }
+      return { date: targetDate, label: label };
+    }
+    
+    function formatPrice(priceMwh) {
+      return "€" + (priceMwh / 1000).toFixed(4);
+    }
+    
+    function formatHour(hour) {
+      return hour.toString().padStart(2, '0') + ":00";
+    }
+    
+    function categorize(price, avg) {
+      if (price <= avg * 0.85) return 'cheap';
+      if (price >= avg * 1.15) return 'expensive';
+      return 'moderate';
+    }
+    
+    function renderPage() {
+      const smartDate = getSmartDate();
+      const avgPrice = priceData.reduce((sum, p) => sum + p.price, 0) / priceData.length;
+      const minPrice = Math.min(...priceData.map(p => p.price));
+      const maxPrice = Math.max(...priceData.map(p => p.price));
+      
+      priceData.forEach(p => { p.category = categorize(p.price, avgPrice); });
+      
+      const sorted = [...priceData].sort((a, b) => a.price - b.price);
+      const cheapest = sorted.slice(0, 6);
+      const expensive = sorted.slice(-6).reverse();
+      
+      document.getElementById('date-label').textContent = smartDate.label;
+      document.getElementById('date-text').textContent = smartDate.date.toLocaleDateString('es-ES', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      });
+      
+      document.getElementById('min-price').textContent = formatPrice(minPrice);
+      document.getElementById('max-price').textContent = formatPrice(maxPrice);
+      document.getElementById('avg-price').textContent = formatPrice(avgPrice);
+      
+      document.getElementById('price-chart').innerHTML = priceData.map(p => {
+        const height = (p.price / maxPrice) * 140;
+        return `<div class="bar-wrapper"><div class="bar ${p.category}" style="height:${height}px" title="${formatHour(p.hour)}: ${formatPrice(p.price)}/kWh"></div><div class="bar-hour">${p.hour}</div></div>`;
+      }).join('');
+      
+      document.getElementById('best-hours').innerHTML = cheapest.map(p => `
+        <div class="hour-item best"><span class="hour-time">${formatHour(p.hour)}</span><span class="hour-price">${formatPrice(p.price)}/kWh</span></div>
+      `).join('');
+      
+      document.getElementById('worst-hours').innerHTML = expensive.map(p => `
+        <div class="hour-item worst"><span class="hour-time">${formatHour(p.hour)}</span><span class="hour-price">${formatPrice(p.price)}/kWh</span></div>
+      `).join('');
+      
+      const bestHour = cheapest[0].hour;
+      const worstHour = expensive[0].hour;
+      document.getElementById('tips-container').innerHTML = `
+        <div class="tip-item"><div class="tip-icon">🧺</div><div class="tip-content"><h4>Lavadora y lavavajillas</h4><p>Mejor hora: <span class="tip-highlight">${formatHour(bestHour)}</span></p></div></div>
+        <div class="tip-item"><div class="tip-icon">🚗</div><div class="tip-content"><h4>Carga del coche eléctrico</h4><p>Programa la carga para las <span class="tip-highlight">${formatHour(bestHour)}</span></p></div></div>
+        <div class="tip-item"><div class="tip-icon">⚠️</div><div class="tip-content"><h4>Evita las ${formatHour(worstHour)}</h4><p>Es la hora más cara. No uses electrodomésticos grandes.</p></div></div>
+      `;
+      
+      document.getElementById('price-table-body').innerHTML = priceData.map(p => {
+        const bg = p.category === 'cheap' ? '#e8f5e9' : p.category === 'expensive' ? '#ffebee' : '#fff9c4';
+        const emoji = p.category === 'cheap' ? '💚' : p.category === 'expensive' ? '🔴' : '🟡';
+        return `<tr style="background:${bg}"><td><strong>${formatHour(p.hour)}</strong></td><td>${formatPrice(p.price)}</td><td>€${p.price.toFixed(2)}</td><td>${emoji}</td></tr>`;
+      }).join('');
+    }
+    
+    function handleEmailSubmit(event) {
+      event.preventDefault();
+      const email = document.getElementById('email-input').value;
+      // Store locally for now - connect to real service later
+      let subs = JSON.parse(localStorage.getItem('subscribers') || '[]');
+      subs.push({ email: email, date: new Date().toISOString() });
+      localStorage.setItem('subscribers', JSON.stringify(subs));
+      document.getElementById('email-form').style.display = 'none';
+      document.getElementById('success-message').classList.add('show');
+    }
+    
+    function acceptCookies() {
+      localStorage.setItem('cookies_accepted', 'true');
+      document.getElementById('cookie-banner').classList.add('hidden');
+    }
+    
+    if (localStorage.getItem('cookies_accepted')) {
+      document.getElementById('cookie-banner').classList.add('hidden');
+    }
+    
+    renderPage();
+  </script>
+  
+</body>
+</html>
