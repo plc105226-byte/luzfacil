@@ -546,6 +546,15 @@
   <footer class="footer">
     <p>Datos de <a href="https://www.esios.ree.es" target="_blank">Red Eléctrica de España (ESIOS)</a></p>
     <p>Precios para tarifa PVPC en la Península · Actualizado cada día a las 20:15</p>
+    
+    <!-- Admin tool for quick WhatsApp posting -->
+    <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 10px; display: inline-block;">
+      <button onclick="copyForWhatsApp()" style="background: #25D366; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1em;">
+        📋 Copiar resumen para WhatsApp
+      </button>
+      <div id="copy-status" style="margin-top: 8px; font-size: 0.85em; color: #2e7d32;"></div>
+    </div>
+    
     <p style="margin-top: 12px;">© 2025 LuzFácil</p>
   </footer>
   
@@ -557,30 +566,14 @@
   <script>
     // PRICE DATA - Updated by update_prices.R
     const priceData = [
-      { hour: 0, price: 147.6 },
-      { hour: 1, price: 143.3 },
-      { hour: 2, price: 134.7 },
-      { hour: 3, price: 131.1 },
-      { hour: 4, price: 128.0 },
-      { hour: 5, price: 126.9 },
-      { hour: 6, price: 128.1 },
-      { hour: 7, price: 128.1 },
-      { hour: 8, price: 166.1 },
-      { hour: 9, price: 158.0 },
-      { hour: 10, price: 206.7 },
-      { hour: 11, price: 199.2 },
-      { hour: 12, price: 195.9 },
-      { hour: 13, price: 190.0 },
-      { hour: 14, price: 124.9 },
-      { hour: 15, price: 128.8 },
-      { hour: 16, price: 142.4 },
-      { hour: 17, price: 159.4 },
-      { hour: 18, price: 237.1 },
-      { hour: 19, price: 238.3 },
-      { hour: 20, price: 237.5 },
-      { hour: 21, price: 238.7 },
-      { hour: 22, price: 169.2 },
-      { hour: 23, price: 170.0 }
+      { hour: 0, price: 131.6 }, { hour: 1, price: 123.3 }, { hour: 2, price: 118.3 },
+      { hour: 3, price: 110.2 }, { hour: 4, price: 107.1 }, { hour: 5, price: 110.9 },
+      { hour: 6, price: 112.5 }, { hour: 7, price: 119.1 }, { hour: 8, price: 128.0 },
+      { hour: 9, price: 123.5 }, { hour: 10, price: 125.8 }, { hour: 11, price: 127.4 },
+      { hour: 12, price: 125.2 }, { hour: 13, price: 121.1 }, { hour: 14, price: 118.9 },
+      { hour: 15, price: 120.3 }, { hour: 16, price: 128.5 }, { hour: 17, price: 135.4 },
+      { hour: 18, price: 147.2 }, { hour: 19, price: 145.4 }, { hour: 20, price: 147.4 },
+      { hour: 21, price: 141.8 }, { hour: 22, price: 139.6 }, { hour: 23, price: 130.8 }
     ];
     
     function getSpainTime() {
@@ -763,6 +756,42 @@
     
     if (localStorage.getItem('cookies_accepted')) {
       document.getElementById('cookie-banner').classList.add('hidden');
+    }
+    
+    // Generate WhatsApp message and copy to clipboard
+    function copyForWhatsApp() {
+      const smartDate = getSmartDate();
+      const sorted = [...priceData].sort((a, b) => a.price - b.price);
+      const cheapest = sorted.slice(0, 3);
+      const expensive = sorted.slice(-3).reverse();
+      
+      // Smart recommendations
+      const washer = priceData.filter(p => p.hour >= 8 && p.hour < 22)
+                              .reduce((min, p) => p.price < min.price ? p : min);
+      
+      const dateStr = smartDate.date.toLocaleDateString('es-ES', {
+        weekday: 'long', day: 'numeric', month: 'long'
+      });
+      
+      const message = `⚡ *LuzFácil - ${smartDate.label}*
+📅 ${dateStr}
+
+💚 *Horas más baratas:*
+${cheapest.map(p => `• ${p.hour.toString().padStart(2,'0')}:00 → €${(p.price/1000).toFixed(4)}/kWh`).join('\n')}
+
+🔴 *Horas más caras:*
+${expensive.map(p => `• ${p.hour.toString().padStart(2,'0')}:00 → €${(p.price/1000).toFixed(4)}/kWh`).join('\n')}
+
+🧺 *Lavadora:* Mejor a las ${washer.hour.toString().padStart(2,'0')}:00
+
+🌐 Más info: plc105226-byte.github.io/luzfacil`;
+
+      navigator.clipboard.writeText(message).then(() => {
+        document.getElementById('copy-status').textContent = '✓ ¡Copiado! Pégalo en WhatsApp';
+        setTimeout(() => {
+          document.getElementById('copy-status').textContent = '';
+        }, 3000);
+      });
     }
     
     renderPage();
