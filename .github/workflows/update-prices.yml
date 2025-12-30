@@ -1,0 +1,127 @@
+name: Update Electricity Prices
+
+# Runs every day at 8:30 PM Spain time (19:30 UTC in winter, 18:30 UTC in summer)
+# Using 19:30 UTC to be safe
+on:
+  schedule:
+    - cron: '30 19 * * *'
+  workflow_dispatch:  # Allows manual trigger for testing
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install requests pytz
+      
+      - name: Fetch prices and update website
+        env:
+          ESIOS_TOKEN: ${{ secrets.ESIOS_TOKEN }}
+        run: |
+          python << 'EOF'
+          import requests
+          import json
+          from datetime import datetime, timedelta
+          import pytz
+          import os
+          import re
+
+          # Configuration
+          ESIOS_TOKEN = os.environ.get('ESIOS_TOKEN')
+          API_URL = "https://api.esios.ree.es/indicators/1001"
+
+          def get_smart_date():
+              """Get today or tomorrow based on Spain time"""
+              spain = pytz.timezone('Europe/Madrid')
+              now = datetime.now(spain)
+              
+              # After 20:15, get tomorrow's prices
+              if now.hour > 20 or (now.hour == 20 and now.minute >= 15):
+                  target = now + timedelta(days=1)
+                  label = "MAÑANA"
+              else:
+                  target = now
+                  label = "HOY"
+              
+              return target.strftime('%Y-%m-%d'), label
+
+          def fetch_prices(date):
+              """Fetch prices from ESIOS API"""
+              headers = {
+                  'Accept': 'application/json',
+                  'x-api-key': ESIOS_TOKEN
+              }
+              
+              params = {
+                  'start_date': f'{date}T00:00:00',
+                  'end_date': f'{date}T23:59:59',
+                  'geo_ids[]': '8741'
+              }
+              
+              response = requests.get(API_URL, headers=headers, params=params, timeout=30)
+              response.raise_for_status()
+              
+              data = response.json()
+              values = data['indicator']['values']
+              
+              # Extract prices (24 hours)
+              prices = []
+              for i, v in enumerate(values[:24]):
+                  prices.append({
+                      'hour': i,
+                      'price': round(v['value'], 1)
+                  })
+              
+              return prices
+
+          def update_html(prices):
+              """Update index.html with new prices"""
+              with open('index.html', 'r', encoding='utf-8') as f:
+                  html = f.read()
+              
+              # Build new price data JavaScript array
+              price_lines = [f"      {{ hour: {p['hour']}, price: {p['price']} }}" for p in prices]
+              new_data = "[\n" + ",\n".join(price_lines) + "\n    ]"
+              
+              # Replace the priceData array
+              pattern = r'const priceData = \[[\s\S]*?\];'
+              replacement = f'const priceData = {new_data};'
+              
+              html = re.sub(pattern, replacement, html)
+              
+              with open('index.html', 'w', encoding='utf-8') as f:
+                  f.write(html)
+              
+              print(f"Updated index.html with {len(prices)} hourly prices")
+
+          # Main execution
+          if not ESIOS_TOKEN:
+              print("ERROR: ESIOS_TOKEN not set")
+              exit(1)
+
+          date, label = get_smart_date()
+          print(f"Fetching prices for {date} ({label})")
+
+          prices = fetch_prices(date)
+          print(f"Fetched {len(prices)} prices")
+          print(f"Min: {min(p['price'] for p in prices)} | Max: {max(p['price'] for p in prices)}")
+
+          update_html(prices)
+          print("Done!")
+          EOF
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add index.html
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update prices for $(date +'%Y-%m-%d')" && git push)
